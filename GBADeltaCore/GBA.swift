@@ -13,8 +13,20 @@ import DeltaCore
 
 public extension GBA
 {
-    static let didActivateGyroNotification = NSNotification.Name.__GBADidActivateGyro
-    static let didDeactivateGyroNotification = NSNotification.Name.__GBADidDeactivateGyro
+    static let didActivateGyroNotification = NSNotification.Name("GBADidActivateGyroNotification")
+    static let didDeactivateGyroNotification = NSNotification.Name("GBADidDeactivateGyroNotification")
+}
+
+public extension GameType
+{
+    static let gba = GameType(rawValue: "com.rileytestut.delta.game.gba")
+}
+
+public extension CheatType
+{
+    static let actionReplay = CheatType("ActionReplay")
+    static let gameShark = CheatType("GameShark")
+    static let codeBreaker = CheatType("CodeBreaker")
 }
 
 @objc public enum GBAGameInput: Int, Input
@@ -56,23 +68,15 @@ public struct GBA: DeltaCoreProtocol
         return [actionReplayFormat, gameSharkFormat, codeBreakerFormat]
     }
     
-    public let emulatorBridge: EmulatorBridging = GBAEmulatorBridge.shared
+    public var emulatorBridge: EmulatorBridging { GBAEmulatorBridge.shared }
+    
+    #if SWIFT_PACKAGE
+    public var resourceBundle: Bundle { Bundle.module }
+    #endif
     
     private init()
     {
+//        GBAEmulatorBridge.shared.coreDirectoryURL = self.directoryURL
+//        GBAEmulatorBridge.shared.coreResourcesBundle = self.resourceBundle
     }
 }
-
-// Expose DeltaCore properties to Objective-C.
-public extension GBAEmulatorBridge
-{
-    @objc(gbaResources) class var __gbaResources: Bundle {
-        return GBA.core.resourceBundle
-    }
-    
-    @objc(coreDirectoryURL) class var __coreDirectoryURL: URL {
-        return _coreDirectoryURL
-    }
-}
-
-private let _coreDirectoryURL = GBA.core.directoryURL

@@ -7,14 +7,6 @@
 //
 
 #import "GBASoundDriver.h"
-#import "GBAEmulatorBridge.h"
-
-#if SWIFT_PACKAGE
-#import "DeltaCoreObjC.h"
-#else
-#import <DeltaCore/DeltaCore.h>
-#import <DeltaCore/DeltaCore-Swift.h>
-#endif
 
 GBASoundDriver::GBASoundDriver()
 {
@@ -31,7 +23,12 @@ bool GBASoundDriver::init(long sampleRate)
 
 void GBASoundDriver::write(uint16_t *finalWave, int length)
 {
-    [GBAEmulatorBridge.sharedBridge.audioRenderer.audioBuffer writeBuffer:(uint8_t *)finalWave size:length];
+    if (this->_audioCallback == NULL)
+    {
+        return;
+    }
+    
+    _audioCallback((unsigned char *)finalWave, length);
 }
 
 void GBASoundDriver::pause()
@@ -44,5 +41,10 @@ void GBASoundDriver::resume()
 
 void GBASoundDriver::reset()
 {
+}
+
+void GBASoundDriver::setAudioCallback(AudioCallback audioCallback)
+{
+    _audioCallback = audioCallback;
 }
 

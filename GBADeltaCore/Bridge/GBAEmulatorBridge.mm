@@ -6,8 +6,8 @@
 //  Copyright © 2016 Riley Testut. All rights reserved.
 //
 
-#import "GBAEmulatorBridge.h"
-#import "GBASoundDriver.h"
+#import "GBAEmulatorBridge+Private.h"
+//#import "GBASoundDriver.h"
 
 #import <CoreMotion/CoreMotion.h>
 
@@ -21,6 +21,13 @@
 
 #include <sys/time.h>
 
+#if SWIFT_PACKAGE
+
+#import "DeltaCoreObjC.h"
+#import "GBATypes.h"
+
+#else
+
 // DeltaCore
 #import <GBADeltaCore/GBADeltaCore.h>
 #import <DeltaCore/DeltaCore.h>
@@ -31,6 +38,8 @@
 #import "GBATypes.h"
 #else
 #import <GBADeltaCore/GBADeltaCore-Swift.h>
+#endif
+
 #endif
 
 // Required vars, used by the emulator core
@@ -61,10 +70,13 @@ int  RGB_LOW_BITS_MASK;
 
 @end
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wprotocol" // DLTAEmulatorBridging partially implemented in category.
 @implementation GBAEmulatorBridge
 @synthesize audioRenderer = _audioRenderer;
 @synthesize videoRenderer = _videoRenderer;
 @synthesize saveUpdateHandler = _saveUpdateHandler;
+#pragma clang diagnostic pop
 
 + (instancetype)sharedBridge
 {
@@ -168,7 +180,7 @@ int  RGB_LOW_BITS_MASK;
     int  _flashSize       = 0x10000;
     
     // Read in vba-over.ini and break it into an array of strings
-    NSString *iniPath = [GBAEmulatorBridge.gbaResources pathForResource:@"vba-over" ofType:@"ini"];
+    NSString *iniPath = [GBAEmulatorBridge.sharedBridge.coreResourcesBundle pathForResource:@"vba-over" ofType:@"ini"];
     NSString *iniString = [NSString stringWithContentsOfFile:iniPath encoding:NSUTF8StringEncoding error:NULL];
     NSArray *settings = [iniString componentsSeparatedByString:@"\n"];
     
@@ -323,42 +335,14 @@ int  RGB_LOW_BITS_MASK;
 
 #pragma mark - Cheats -
 
-- (BOOL)addCheatCode:(NSString *)cheatCode type:(NSString *)type
+- (void)addGameSharkCheatCode:(NSString *)cheatCode
 {
-    NSArray<NSString *> *codes = [cheatCode componentsSeparatedByString:@"\n"];
-    for (NSString *code in codes)
-    {
-        NSMutableCharacterSet *legalCharactersSet = [NSMutableCharacterSet hexadecimalCharacterSet];
-        [legalCharactersSet addCharactersInString:@" "];
-        
-        if ([code rangeOfCharacterFromSet:[legalCharactersSet invertedSet]].location != NSNotFound)
-        {
-            return NO;
-        }
-        
-        if ([type isEqualToString:CheatTypeActionReplay] || [type isEqualToString:CheatTypeGameShark])
-        {
-            NSString *sanitizedCode = [code stringByReplacingOccurrencesOfString:@" " withString:@""];
-            
-            if (sanitizedCode.length != 16)
-            {
-                return NO;
-            }
-            
-            cheatsAddGSACode([sanitizedCode UTF8String], "code", true);
-        }
-        else if ([type isEqualToString:CheatTypeCodeBreaker])
-        {
-            if (code.length != 13)
-            {
-                return NO;
-            }
-            
-            cheatsAddCBACode([code UTF8String], "code");
-        }
-    }
-    
-    return YES;
+    cheatsAddGSACode([cheatCode UTF8String], "code", true);
+}
+
+- (void)addCodeBreakerCheatCode:(NSString *)cheatCode
+{
+    cheatsAddCBACode([cheatCode UTF8String], "code");
 }
 
 - (void)resetCheats
@@ -483,13 +467,13 @@ uint32_t systemGetClock()
     return milliseconds;
 }
 
-SoundDriver *systemSoundInit()
-{
-    soundShutdown();
-    
-    auto driver = new GBASoundDriver;
-    return driver;
-}
+//SoundDriver *systemSoundInit()
+//{
+//    soundShutdown();
+//    
+//    auto driver = new GBASoundDriver;
+//    return driver;
+//}
 
 void systemUpdateMotionSensor()
 {
